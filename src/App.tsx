@@ -1,33 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import {useState,useEffect,useRef} from "react";
+
 import './App.css'
+import axios from "axios";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [avgAge, setAvgAge] = useState(0);
+  const [loaderInterval, setLoaderInterval] = useState();
+  const [lastLoaded, setLastLoaded] = useState(Date.now());
+  const [timeStopped, setTimeStopped] = useState(Date.now());
+
+  async function  loadData(){
+    console.log("initialize load");
+    
+    await axios.get('https://randomuser.me/api/?results=10').then(async result=>{
+      console.log(result.data.results);
+
+      setAvgAge(() => {
+        let total=0;
+        result.data.results.forEach((element:any)  => {
+          total+= element.dob.age;
+        });
+        return total/10;
+      })
+    })
+    console.log("finish load");
+    setLastLoaded(Date.now())
+  }
+
+  useEffect(() => {   
+    setupF();
+  },[]);
+
+  function setupF() {
+    loadData();
+    setLoaderInterval( setInterval(loadData, 5000));
+  }
+
+  function stopTimer(){
+    clearInterval(loaderInterval);
+    setLoaderInterval(null)
+    // loaderInterval.current = null;
+    console.log(loaderInterval);
+    setTimeStopped(Date.now());
+    console.log("diff: ",timeStopped - lastLoaded);
+    
+  } 
+  function resumeTimer(){
+    setTimeout(setupF, 5000 - (timeStopped - lastLoaded));
+  }
+  
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+    <h1 className=''>Prosek: {avgAge}</h1>
+    <button onClick={loadData}>Load</button>
+    <p>{lastLoaded}</p>
+    <p>{timeStopped}</p>
+    <p></p>
+    {loaderInterval? 
+    <button onClick={stopTimer}>Stop</button>:
+    <button onClick={resumeTimer}>Resume</button>
+  }
     </>
   )
 }
